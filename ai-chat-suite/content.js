@@ -84,6 +84,21 @@
     });
   }
 
+  // ── Keyboard Shortcut ──
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      e.stopPropagation();
+      const panel = document.getElementById('acs-panel');
+      const toggle = document.getElementById('acs-toggle');
+      if (!panel) return;
+      const collapsed = panel.classList.toggle('acs-collapsed');
+      if (toggle) toggle.innerHTML = collapsed ? '<span class="acs-toggle-arrow">▶</span>' : '<span class="acs-toggle-arrow">◀</span>';
+      storageSet('acs_panel_open', !collapsed);
+    }
+  }, true);
+
   // ── Indexing ──
 
   function indexExistingMessages() {
@@ -268,7 +283,9 @@
           </div>
           <div class="acs-header-right">
             <span class="acs-badge" id="acs-prompt-count">0</span>
-            <button class="acs-collapse-btn" id="acs-toggle" title="Toggle">◀</button>
+            <button class="acs-collapse-btn" id="acs-toggle" title="Toggle (Ctrl+Alt+K)">
+              <span class="acs-toggle-arrow">◀</span>
+            </button>
           </div>
         </div>
         <div class="acs-body">
@@ -279,8 +296,17 @@
           <div class="acs-list" id="acs-prompt-list"></div>
           <div class="acs-footer">
             <div class="acs-footer-actions">
-              <button class="acs-foot-btn acs-btn-md" id="acs-export-md" title="Export Markdown">MD</button>
-              <button class="acs-foot-btn acs-btn-json" id="acs-export-json" title="Export JSON">JSON</button>
+              <div class="acs-export-dropdown" id="acs-export-dropdown">
+                <button class="acs-foot-btn acs-btn-export" id="acs-export-btn" title="Export">
+                  <span class="acs-export-icon">↓</span> Export <span class="acs-dropdown-caret">▾</span>
+                </button>
+                <div class="acs-export-menu" id="acs-export-menu">
+                  <button class="acs-export-option" data-format="md"><span class="acs-format-dot acs-dot-md"></span>Markdown (.md)</button>
+                  <button class="acs-export-option" data-format="json"><span class="acs-format-dot acs-dot-json"></span>JSON (.json)</button>
+                  <button class="acs-export-option" data-format="pdf"><span class="acs-format-dot acs-dot-pdf"></span>PDF (.pdf)</button>
+                  <button class="acs-export-option" data-format="docx"><span class="acs-format-dot acs-dot-docx"></span>Word (.docx)</button>
+                </div>
+              </div>
               <button class="acs-foot-btn acs-btn-sync" id="acs-sync-selected" title="Sync to Notion" disabled>Sync</button>
             </div>
             <button class="acs-foot-btn acs-btn-selectall" id="acs-select-all-btn">Select All</button>
@@ -298,13 +324,32 @@
     const search = root.querySelector('#acs-search');
     const selectAllBtn = root.querySelector('#acs-select-all-btn');
     const syncBtn = root.querySelector('#acs-sync-selected');
-    const exportMdBtn = root.querySelector('#acs-export-md');
-    const exportJsonBtn = root.querySelector('#acs-export-json');
+    const exportBtn = root.querySelector('#acs-export-btn');
+    const exportMenu = root.querySelector('#acs-export-menu');
 
     toggle?.addEventListener('click', () => {
       const collapsed = panel.classList.toggle('acs-collapsed');
-      toggle.textContent = collapsed ? '▶' : '◀';
+      toggle.innerHTML = collapsed ? '<span class="acs-toggle-arrow">▶</span>' : '<span class="acs-toggle-arrow">◀</span>';
       storageSet('acs_panel_open', !collapsed);
+    });
+
+    // Export dropdown
+    exportBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportMenu?.classList.toggle('acs-export-menu-open');
+    });
+
+    exportMenu?.querySelectorAll('.acs-export-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const format = opt.getAttribute('data-format');
+        exportMenu.classList.remove('acs-export-menu-open');
+        exportFromPanel(format);
+      });
+    });
+
+    document.addEventListener('click', () => {
+      exportMenu?.classList.remove('acs-export-menu-open');
     });
 
     search?.addEventListener('input', debounce((e) => {
@@ -323,8 +368,6 @@
     });
 
     syncBtn?.addEventListener('click', () => syncSelectedToNotion());
-    exportMdBtn?.addEventListener('click', () => exportFromPanel('md'));
-    exportJsonBtn?.addEventListener('click', () => exportFromPanel('json'));
 
     makeDraggable(panel, root.querySelector('#acs-drag-handle'));
   }
@@ -570,8 +613,24 @@
       if (format === 'md') {
         data.includeYaml = settings.addYamlFrontMatter;
         downloadFile(exportAsMarkdown(data), makeFilename(data.metadata.platform, 'md'), 'text/markdown');
-      } else {
+      } else if (format === 'json') {
         downloadFile(exportAsJSON(data), makeFilename(data.metadata.platform, 'json'), 'application/json');
+      } else if (format === 'pdf') {
+        showPanelStatus('Generating PDF...', 'info');
+        exportAsPDF(data).then(() => {
+          showPanelStatus('Exported!', 'success');
+        }).catch(e => {
+          showPanelStatus(e.message, 'error');
+        });
+        return;
+      } else if (format === 'docx') {
+        showPanelStatus('Generating DOCX...', 'info');
+        exportAsDOCX(data).then(() => {
+          showPanelStatus('Exported!', 'success');
+        }).catch(e => {
+          showPanelStatus(e.message, 'error');
+        });
+        return;
       }
       showPanelStatus('Exported!', 'success');
     } catch (e) {
