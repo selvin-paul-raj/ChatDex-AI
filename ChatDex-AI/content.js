@@ -615,13 +615,7 @@
       } else if (format === 'json') {
         downloadFile(exportAsJSON(data), makeFilename(data.metadata.platform, 'json'), 'application/json');
       } else if (format === 'pdf') {
-        showPanelStatus('Generating PDF...', 'info');
-        exportAsPDF(data).then(() => {
-          showPanelStatus('Exported!', 'success');
-        }).catch(e => {
-          showPanelStatus(e.message, 'error');
-        });
-        return;
+        exportAsPDF(data);
       }
       showPanelStatus('Exported!', 'success');
     } catch (e) {

@@ -156,63 +156,38 @@ function escapeYaml(str) {
 }
 
 /**
- * Exports chat data as a professional PDF using html2pdf.js (client-side).
+ * Exports chat data as a professional PDF using browser print-to-PDF.
+ * Opens a styled document in a new window and triggers the print dialog,
+ * where the user can choose "Save as PDF".
  * @param {object} chatData - Chat data from gatherChatData().
- * @returns {Promise<void>}
  */
-async function exportAsPDF(chatData) {
+function exportAsPDF(chatData) {
   if (!chatData || !chatData.conversation || chatData.conversation.length === 0) {
     throw new Error('Nothing to export');
   }
 
-  if (typeof html2pdf === 'undefined') {
-    throw new Error('PDF library not loaded — reinstall the extension');
-  }
-
   const meta = chatData.metadata;
-  const { css, body } = buildPdfContent(meta, chatData.conversation);
-  const filename = makeFilename(meta.platform, 'pdf');
+  const htmlDoc = buildPdfDocument(meta, chatData.conversation);
 
-  // Build container with scoped styles (not a full HTML doc)
-  const container = document.createElement('div');
-  container.id = 'chatdex-pdf-render';
-  container.style.cssText = 'position:fixed;left:0;top:0;width:794px;background:#fff;z-index:2147483647;overflow:auto;';
-
-  const styleEl = document.createElement('style');
-  styleEl.textContent = '#chatdex-pdf-render{' + css.replace(/\n/g, '') + '}';
-  container.appendChild(styleEl);
-
-  const content = document.createElement('div');
-  content.className = 'pdf-root';
-  content.innerHTML = body;
-  container.appendChild(content);
-  document.body.appendChild(container);
-
-  // Wait for fonts and images to load
-  await new Promise(r => setTimeout(r, 300));
-
-  try {
-    await html2pdf()
-      .set({
-        margin: [10, 10, 10, 10],
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 794
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      })
-      .from(content)
-      .save();
-  } finally {
-    document.body.removeChild(container);
+  const printWin = window.open('', '_blank');
+  if (!printWin) {
+    throw new Error('Pop-up blocked — please allow pop-ups for this site and retry');
   }
+
+  printWin.document.open();
+  printWin.document.write(htmlDoc);
+  printWin.document.close();
+
+  // Wait for content to render, then trigger print dialog
+  printWin.onload = () => {
+    printWin.focus();
+    printWin.print();
+  };
+  // Fallback if onload doesn't fire (some browsers)
+  setTimeout(() => {
+    printWin.focus();
+    printWin.print();
+  }, 600);
 }
 
 
