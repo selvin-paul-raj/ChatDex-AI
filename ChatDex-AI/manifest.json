@@ -28,6 +28,7 @@
         "https://gemini.google.com/*"
       ],
       "js": [
+        "config.js",
         "platformDetector.js",
         "utils.js",
         "exporter.js",
