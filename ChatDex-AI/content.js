@@ -304,7 +304,6 @@
                   <button class="acs-export-option" data-format="md"><span class="acs-format-dot acs-dot-md"></span>Markdown (.md)</button>
                   <button class="acs-export-option" data-format="json"><span class="acs-format-dot acs-dot-json"></span>JSON (.json)</button>
                   <button class="acs-export-option" data-format="pdf"><span class="acs-format-dot acs-dot-pdf"></span>PDF (.pdf)</button>
-                  <button class="acs-export-option" data-format="docx"><span class="acs-format-dot acs-dot-docx"></span>Word (.docx)</button>
                 </div>
               </div>
               <button class="acs-foot-btn acs-btn-sync" id="acs-sync-selected" title="Sync to Notion" disabled>Sync</button>
@@ -618,14 +617,6 @@
       } else if (format === 'pdf') {
         showPanelStatus('Generating PDF...', 'info');
         exportAsPDF(data).then(() => {
-          showPanelStatus('Exported!', 'success');
-        }).catch(e => {
-          showPanelStatus(e.message, 'error');
-        });
-        return;
-      } else if (format === 'docx') {
-        showPanelStatus('Generating DOCX...', 'info');
-        exportAsDOCX(data).then(() => {
           showPanelStatus('Exported!', 'success');
         }).catch(e => {
           showPanelStatus(e.message, 'error');

@@ -156,8 +156,7 @@ function escapeYaml(str) {
 }
 
 /**
- * Exports chat data as a PDF file using the browser's print-to-PDF.
- * Builds a styled HTML document and opens it in a new window for printing.
+ * Exports chat data as a professional PDF using html2pdf.js (client-side).
  * @param {object} chatData - Chat data from gatherChatData().
  * @returns {Promise<void>}
  */
@@ -166,117 +165,138 @@ async function exportAsPDF(chatData) {
     throw new Error('Nothing to export');
   }
 
-  const meta = chatData.metadata;
-  const html = buildExportHTML(meta, chatData.conversation, 'pdf');
-  const printWin = window.open('', '_blank', 'width=800,height=600');
-  if (!printWin) throw new Error('Pop-up blocked — please allow pop-ups for this site');
-
-  printWin.document.write(html);
-  printWin.document.close();
-  printWin.onload = () => {
-    setTimeout(() => {
-      printWin.print();
-      // Don't close — user may cancel
-    }, 400);
-  };
-}
-
-/**
- * Exports chat data as a DOCX file.
- * Generates a Word-compatible HTML file with .docx extension.
- * @param {object} chatData - Chat data from gatherChatData().
- * @returns {Promise<void>}
- */
-async function exportAsDOCX(chatData) {
-  if (!chatData || !chatData.conversation || chatData.conversation.length === 0) {
-    throw new Error('Nothing to export');
+  if (typeof html2pdf === 'undefined') {
+    throw new Error('PDF library not loaded — reinstall the extension');
   }
 
   const meta = chatData.metadata;
-  const bodyHTML = buildExportHTML(meta, chatData.conversation, 'docx');
+  const html = buildPdfHTML(meta, chatData.conversation);
+  const filename = makeFilename(meta.platform, 'pdf');
 
-  // Word-compatible MHTML with proper namespace
-  const docContent = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<style>
-  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.6; margin: 40px; }
-  h1 { font-size: 18pt; color: #1a1a2e; border-bottom: 2px solid #4a9eff; padding-bottom: 6px; }
-  h2 { font-size: 13pt; color: #2d3748; margin-top: 18pt; }
-  .meta { font-size: 9pt; color: #666; margin-bottom: 16pt; }
-  .user-label { color: #2563eb; font-weight: bold; font-size: 11pt; margin-top: 14pt; }
-  .ai-label { color: #059669; font-weight: bold; font-size: 11pt; margin-top: 10pt; }
-  .user-content { background: #eff6ff; padding: 8px 12px; border-left: 3px solid #3b82f6; margin: 4px 0 12px 0; }
-  .ai-content { padding: 4px 0 12px 0; }
-  .divider { border-top: 1px solid #e2e8f0; margin: 16pt 0; }
-  pre { background: #f1f5f9; padding: 10px 14px; border-radius: 4px; font-family: Consolas, monospace; font-size: 9.5pt; overflow-x: auto; white-space: pre-wrap; }
-  code { font-family: Consolas, monospace; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9.5pt; }
-  table { border-collapse: collapse; margin: 8px 0; }
-  td, th { border: 1px solid #cbd5e1; padding: 4px 10px; font-size: 10pt; }
-  th { background: #f1f5f9; }
-  ul, ol { padding-left: 22px; }
-  blockquote { border-left: 3px solid #94a3b8; padding-left: 12px; color: #475569; margin: 8px 0; }
-</style>
-</head>
-<body>
-<h1>${escapeHTMLForExport(meta.title)}</h1>
-<div class="meta">Platform: ${escapeHTMLForExport(meta.platform)} &nbsp;|&nbsp; Exported: ${meta.exportedAt} &nbsp;|&nbsp; Turns: ${meta.totalTurns}</div>
-${buildConversationHTML(chatData.conversation)}
-</body>
-</html>`;
+  // Create a hidden container to render the HTML
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;z-index:-1;background:#fff;';
+  container.innerHTML = html;
+  document.body.appendChild(container);
 
-  const blob = new Blob([docContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = makeFilename(meta.platform, 'docx');
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  try {
+    await html2pdf()
+      .set({
+        margin: [0.4, 0.4, 0.4, 0.4],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      })
+      .from(container)
+      .save();
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
+
+
 /**
- * Builds a full HTML document for PDF export or body HTML for DOCX.
+ * Builds a professional HTML document for PDF rendering.
  */
-function buildExportHTML(meta, conversation, mode) {
-  if (mode === 'pdf') {
-    return `<!DOCTYPE html>
-<html>
+function buildPdfHTML(meta, conversation) {
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <title>${escapeHTMLForExport(meta.title)}</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; color: #1a1a1a; line-height: 1.7; padding: 32px 40px; }
-  h1 { font-size: 22px; color: #1a1a2e; border-bottom: 2px solid #4a9eff; padding-bottom: 8px; margin-bottom: 6px; }
-  .meta { font-size: 10px; color: #666; margin-bottom: 24px; }
-  .turn { margin-bottom: 20px; page-break-inside: avoid; }
-  .user-label { color: #2563eb; font-weight: 700; font-size: 12px; margin-bottom: 2px; }
-  .ai-label { color: #059669; font-weight: 700; font-size: 12px; margin-bottom: 2px; margin-top: 8px; }
-  .user-content { background: #eff6ff; padding: 10px 14px; border-left: 3px solid #3b82f6; border-radius: 4px; margin-bottom: 10px; white-space: pre-wrap; }
-  .ai-content { padding: 2px 0; white-space: pre-wrap; }
-  .divider { border: none; border-top: 1px solid #e2e8f0; margin: 18px 0; }
-  pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 6px; font-family: 'SF Mono', Consolas, monospace; font-size: 11px; overflow-x: auto; margin: 8px 0; white-space: pre-wrap; }
-  code { font-family: 'SF Mono', Consolas, monospace; background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
-  table { border-collapse: collapse; margin: 8px 0; width: 100%; }
-  td, th { border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 11px; text-align: left; }
-  th { background: #f1f5f9; font-weight: 600; }
-  ul, ol { padding-left: 24px; margin: 6px 0; }
-  blockquote { border-left: 3px solid #94a3b8; padding-left: 14px; color: #475569; margin: 8px 0; font-style: italic; }
-  @media print { body { padding: 20px; } .turn { page-break-inside: avoid; } }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; color: #1a1a2e; line-height: 1.7; padding: 48px 56px; background: #fff; }
+  /* Header */
+  .doc-header { margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+  .doc-title { font-size: 22pt; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .doc-meta { display: flex; gap: 20px; font-size: 8.5pt; color: #64748b; }
+  .doc-meta-item { display: flex; align-items: center; gap: 5px; }
+  .doc-meta-label { font-weight: 600; color: #475569; }
+  /* Conversation */
+  .turn-block { margin-bottom: 24px; page-break-inside: avoid; }
+  .turn-separator { border: none; height: 1px; background: linear-gradient(to right, transparent, #cbd5e1, transparent); margin: 28px 0; }
+  /* User prompt */
+  .user-block { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; }
+  .user-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 9pt; font-weight: 600; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .user-content { color: #1e293b; font-size: 10.5pt; line-height: 1.7; }
+  /* AI response */
+  .ai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 9pt; font-weight: 600; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ai-content { color: #334155; font-size: 10.5pt; line-height: 1.8; padding: 0 4px; }
+  /* Typography */
+  .ai-content h1, .ai-content h2, .ai-content h3, .ai-content h4 { color: #0f172a; margin: 16px 0 8px 0; }
+  .ai-content h1 { font-size: 15pt; }
+  .ai-content h2 { font-size: 13pt; }
+  .ai-content h3 { font-size: 11.5pt; }
+  .ai-content h4 { font-size: 10.5pt; }
+  .ai-content p { margin: 6px 0; }
+  .ai-content strong { font-weight: 600; color: #1e293b; }
+  .ai-content em { font-style: italic; color: #475569; }
+  /* Code */
+  pre { background: #1e293b; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; font-family: 'Fira Code', 'SF Mono', Consolas, monospace; font-size: 9pt; line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre-wrap; word-wrap: break-word; }
+  code { font-family: 'Fira Code', 'SF Mono', Consolas, monospace; background: #f1f5f9; color: #be185d; padding: 2px 6px; border-radius: 4px; font-size: 9pt; }
+  pre code { background: none; color: inherit; padding: 0; border-radius: 0; font-size: inherit; }
+  /* Tables */
+  table { border-collapse: collapse; margin: 12px 0; width: 100%; font-size: 9.5pt; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 10px 14px; border: 1px solid #cbd5e1; }
+  td { padding: 8px 14px; border: 1px solid #e2e8f0; color: #475569; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  /* Lists */
+  ul, ol { padding-left: 24px; margin: 8px 0; }
+  li { margin: 4px 0; color: #334155; }
+  li::marker { color: #6366f1; }
+  /* Blockquotes */
+  blockquote { border-left: 3px solid #6366f1; padding: 10px 16px; margin: 12px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
+  /* Links */
+  a { color: #2563eb; text-decoration: none; }
+  /* Footer */
+  .doc-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 8pt; color: #94a3b8; text-align: center; }
 </style>
 </head>
 <body>
-<h1>${escapeHTMLForExport(meta.title)}</h1>
-<div class="meta">Platform: ${escapeHTMLForExport(meta.platform)} &nbsp;•&nbsp; Exported: ${meta.exportedAt} &nbsp;•&nbsp; Turns: ${meta.totalTurns}</div>
-${buildConversationHTML(conversation)}
+<div class="doc-header">
+  <div class="doc-title">${escapeHTMLForExport(meta.title)}</div>
+  <div class="doc-meta">
+    <span class="doc-meta-item"><span class="doc-meta-label">Platform:</span> ${escapeHTMLForExport(meta.platform)}</span>
+    <span class="doc-meta-item"><span class="doc-meta-label">Exported:</span> ${meta.exportedAt}</span>
+    <span class="doc-meta-item"><span class="doc-meta-label">Turns:</span> ${meta.totalTurns}</span>
+  </div>
+</div>
+${buildPdfConversationHTML(conversation)}
+<div class="doc-footer">Generated by ChatDex AI</div>
 </body>
 </html>`;
+}
+
+/**
+ * Converts conversation array into professional HTML for PDF export.
+ */
+function buildPdfConversationHTML(conversation) {
+  const parts = [];
+  let currentTurn = 0;
+
+  for (const entry of conversation) {
+    if (entry.turn !== currentTurn) {
+      if (currentTurn > 0) parts.push('<hr class="turn-separator">');
+      currentTurn = entry.turn;
+      parts.push('<div class="turn-block">');
+    }
+    if (entry.role === 'user') {
+      parts.push(`<div class="user-block">`);
+      parts.push(`<div class="user-header">&#128172; You</div>`);
+      parts.push(`<div class="user-content">${markdownToHTML(entry.content)}</div>`);
+      parts.push(`</div>`);
+    } else {
+      parts.push(`<div class="ai-header">&#129302; AI Response</div>`);
+      parts.push(`<div class="ai-content">${markdownToHTML(entry.content)}</div>`);
+    }
   }
+  if (currentTurn > 0) parts.push('</div>');
+  return parts.join('\n');
 }
 
 /**

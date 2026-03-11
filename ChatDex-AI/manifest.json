@@ -27,6 +27,7 @@
         "https://gemini.google.com/*"
       ],
       "js": [
+        "lib/html2pdf.bundle.min.js",
         "platformDetector.js",
         "utils.js",
         "exporter.js",
