@@ -83,33 +83,19 @@ Each page has database properties: **Name**, **Platform** (chatgpt/gemini), **Ta
 ## Project Structure
 
 ```
-ChatDex-AI/
-├── ai-chat-suite/              # Chrome Extension — just load this folder
-│   ├── manifest.json           # Permissions, content scripts, service worker
-│   ├── config.js               # Pre-configured (no editing needed)
-│   ├── background.js           # Service worker — Notion API proxy, badge
-│   ├── content.js              # Panel injection, indexing, MutationObserver
-│   ├── platformDetector.js     # Platform detection + CSS selectors
-│   ├── notionSync.js           # Notion API — page creation, block formatting
-│   ├── exporter.js             # Markdown / JSON export
-│   ├── utils.js                # Utilities — extractText, debounce, storage
-│   ├── options.html/js/css     # Options page — Notion OAuth + settings
-│   ├── popup.html/js/css       # Popup — quick stats + export
-│   ├── panel.css               # Dark sidebar theme
-│   └── icons/                  # Extension icons (16, 48, 128)
-│
-├── server/                     # Vercel backend (already hosted)
-│   ├── pages/api/
-│   │   ├── notion-callback.ts  # OAuth callback → exchange code → store token
-│   │   └── notion-token.ts     # Polling endpoint — extension fetches token
-│   ├── pages/
-│   │   ├── privacy.tsx         # Privacy policy page
-│   │   └── terms.tsx           # Terms of service page
-│   └── lib/supabase.ts         # Supabase client
-│
-└── supabase/                   # Database setup (already hosted)
-    └── migrations/
-        └── 001_notion_tokens.sql
+ai-chat-suite/                    # Load this folder in Chrome
+├── manifest.json                 # Permissions, content scripts, service worker
+├── config.js                     # Pre-configured (no editing needed)
+├── background.js                 # Service worker — Notion API proxy, badge
+├── content.js                    # Panel injection, indexing, MutationObserver
+├── platformDetector.js           # Platform detection + CSS selectors
+├── notionSync.js                 # Notion API — page creation, block formatting
+├── exporter.js                   # Markdown / JSON export
+├── utils.js                      # Utilities — extractText, debounce, storage
+├── options.html/js/css           # Options page — Notion OAuth + settings
+├── popup.html/js/css             # Popup — quick stats + export
+├── panel.css                     # Dark sidebar theme
+└── icons/                        # Extension icons (16, 48, 128)
 ```
 
 ---
@@ -166,80 +152,6 @@ ChatDex-AI/
 | Database | Supabase (PostgreSQL) — temporary OAuth tokens |
 | Integration | Notion API (OAuth 2.0) |
 | Styling | GitHub-inspired dark theme |
-
----
-
-## Self-Hosting (Optional)
-
-Want to run your own backend instead of using the hosted one? Follow these steps.
-
-### 1. Create a Notion Integration
-
-1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
-2. Click **New Integration** → set type to **Public**
-3. Fill in:
-   - **Name**: ChatDex AI
-   - **Redirect URI**: `https://YOUR_SERVER.vercel.app/api/notion-callback`
-   - **Privacy Policy URL**: `https://YOUR_SERVER.vercel.app/privacy`
-   - **Terms URL**: `https://YOUR_SERVER.vercel.app/terms`
-4. Copy your **OAuth Client ID** and **OAuth Client Secret**
-
-### 2. Set Up Supabase
-
-1. Create a free project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run:
-
-```sql
-CREATE TABLE IF NOT EXISTS notion_tokens (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  state text UNIQUE NOT NULL,
-  access_token text NOT NULL,
-  workspace_name text DEFAULT '',
-  created_at timestamptz DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_notion_tokens_state ON notion_tokens (state);
-CREATE INDEX IF NOT EXISTS idx_notion_tokens_created ON notion_tokens (created_at);
-ALTER TABLE notion_tokens ENABLE ROW LEVEL SECURITY;
-```
-
-3. Note your **Project URL** and **Anon Key** from Settings → API
-
-### 3. Deploy Server to Vercel
-
-```bash
-cd server
-npm install
-```
-
-Set these environment variables in [Vercel Dashboard](https://vercel.com) → Project → Settings → Environment Variables:
-
-| Variable | Value |
-|---|---|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_ANON_KEY` | Your Supabase anon key |
-| `NOTION_CLIENT_ID` | From step 1 |
-| `NOTION_CLIENT_SECRET` | From step 1 |
-| `NOTION_REDIRECT_URI` | `https://YOUR_SERVER.vercel.app/api/notion-callback` |
-
-```bash
-npx vercel --prod
-```
-
-### 4. Update Extension Config
-
-Edit `ai-chat-suite/config.js` with your own values:
-
-```js
-const ACS_CONFIG = Object.freeze({
-  SUPABASE_URL: 'https://YOUR_PROJECT.supabase.co',
-  SERVER_URL: 'https://YOUR_SERVER.vercel.app',
-  NOTION_CLIENT_ID: 'your-notion-client-id',
-  NOTION_REDIRECT_URI: 'https://YOUR_SERVER.vercel.app/api/notion-callback',
-  NOTION_API_VERSION: '2022-06-28',
-  OAUTH_POLL_INTERVAL: 2000,
-  OAUTH_TIMEOUT: 300000,
-});
-```
 
 ---
 
