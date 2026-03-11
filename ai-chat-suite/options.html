@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=600" />
+  <title>ChatDex AI — Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="options-page">
+    <div class="main-card">
+      <h1>ChatDex AI Options</h1>
+
+      <!-- Connected state (hidden by default) -->
+      <div id="state-connected" class="hidden">
+        <div class="status-icon connected">✓</div>
+        <p class="status-text">Connected to Notion</p>
+        <p class="status-sub" id="connected-db-name"></p>
+        <p class="status-sub" id="connected-workspace"></p>
+
+        <!-- Settings (shown only when connected) -->
+        <div class="settings-section">
+          <div class="settings-group">
+            <h3>Export Settings</h3>
+            <label class="toggle-row">
+              <span>Add YAML Front Matter</span>
+              <input type="checkbox" id="opt-yaml" />
+            </label>
+            <span class="toggle-hint">Include metadata fields in exported markdown files</span>
+          </div>
+          <div class="settings-group">
+            <h3>Panel Settings</h3>
+            <label class="toggle-row">
+              <span>Auto-open panel on page load</span>
+              <input type="checkbox" id="opt-autoopen" checked />
+            </label>
+            <label class="toggle-row">
+              <span>Show timestamps in panel</span>
+              <input type="checkbox" id="opt-timestamps" checked />
+            </label>
+          </div>
+          <button class="btn btn-primary btn-full" id="btn-save">Save Settings</button>
+          <div class="save-status" id="save-status"></div>
+        </div>
+
+        <button class="btn btn-outline btn-full" id="btn-disconnect">Disconnect from Notion</button>
+      </div>
+
+      <!-- Not-connected state -->
+      <div id="state-disconnected">
+        <div class="auth-guide">
+          <h3>Notion Authorization Guide</h3>
+          <ul>
+            <li>Select "Use a template provided by the developer". We'll create an "AI Chats" page in your Notion workspace.</li>
+            <li>Your synced content will be automatically created in Notion.</li>
+            <li>Your data is stored exclusively on Notion, ensuring it's never lost.</li>
+          </ul>
+        </div>
+
+        <p class="status-hint">Please login with Notion to use ChatDex AI</p>
+
+        <button class="btn btn-primary btn-full" id="btn-login">Login with Notion</button>
+
+        <div class="connect-status" id="connect-status"></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-links">
+        <button class="btn btn-outline btn-full" id="btn-help">Help & Reauthorization Guide</button>
+        <button class="btn btn-outline btn-full" id="btn-review">Leave a Review</button>
+        <button class="btn btn-outline btn-full" id="btn-feedback">Provide Feedback</button>
+      </div>
+
+      <p class="version-text">ChatDex AI v1.0.0</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

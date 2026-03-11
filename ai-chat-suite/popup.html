@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=360" />
+  <title>ChatDex AI</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup">
+    <!-- Header -->
+    <div class="header">
+      <h1>ChatDex AI</h1>
+      <span class="platform-badge" id="platform-badge">—</span>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar" id="stats-bar">
+      <span id="stat-prompts">0 prompts</span>
+      <span class="sep">|</span>
+      <span id="stat-words">0 words</span>
+    </div>
+
+    <!-- Export Bar -->
+    <div class="section">
+      <div class="section-title">Export</div>
+      <div class="export-bar">
+        <button class="export-btn" id="btn-markdown" title="Export as Markdown">Markdown</button>
+        <button class="export-btn" id="btn-json" title="Export as JSON">JSON</button>
+        <button class="export-btn" id="btn-notion" title="Sync to Notion">Notion</button>
+      </div>
+      <div class="notion-status" id="notion-status"></div>
+    </div>
+
+    <!-- Settings Link -->
+    <div class="section">
+      <button class="settings-link-btn" id="btn-options">Open Settings</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

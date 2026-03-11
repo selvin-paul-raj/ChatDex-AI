@@ -1,0 +1,141 @@
+/* Popup styles for ChatDex AI */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #1e293b;
+  background: #ffffff;
+  width: 360px;
+  min-height: 200px;
+}
+
+.popup {
+  padding: 16px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.header h1 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.platform-badge {
+  background: #7c3aed;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* ── Stats Bar ── */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sep {
+  color: #cbd5e1;
+}
+
+/* ── Sections ── */
+.section {
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+/* ── Export Bar ── */
+.export-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.export-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.export-btn:hover {
+  background: #f1f5f9;
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+.export-btn:active {
+  transform: scale(0.97);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notion-status {
+  font-size: 11px;
+  margin-top: 6px;
+  color: #64748b;
+  min-height: 16px;
+}
+
+.notion-status.error {
+  color: #ef4444;
+}
+
+.notion-status.success {
+  color: #22c55e;
+}
+
+/* ── Settings Link ── */
+.settings-link-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  color: #7c3aed;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-link-btn:hover {
+  background: #f8fafc;
+}

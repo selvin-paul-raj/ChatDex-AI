@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat Suite Panel</title>
+  <link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+  <div id="acs-panel" class="acs-panel">
+    <div class="acs-panel-header" id="acs-drag-handle">
+      <span class="acs-panel-title">🗂️ AI Chat Suite</span>
+      <span class="acs-panel-badge" id="acs-prompt-count">0</span>
+      <button class="acs-btn acs-toggle-btn" id="acs-toggle" title="Toggle Panel">◀</button>
+    </div>
+    <div class="acs-panel-body">
+      <div class="acs-search-bar">
+        <input type="text" id="acs-search" placeholder="Search prompts..." autocomplete="off" />
+      </div>
+      <div class="acs-prompt-list" id="acs-prompt-list">
+        <div class="acs-empty">No prompts indexed yet.</div>
+      </div>
+    </div>
+  </div>
+  <script src="panel.js"></script>
+</body>
+</html>

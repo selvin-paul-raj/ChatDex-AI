@@ -1,0 +1,28 @@
+# ── Secrets & Config ──
+ai-chat-suite/config.js
+
+# ── Backup files ──
+*.bak
+
+# ── Dependencies ──
+node_modules/
+.next/
+.vercel/
+
+# ── Environment ──
+.env
+.env.local
+.env.*.local
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ──
+.vscode/
+.idea/
+
+# ── Build output ──
+dist/
+build/
