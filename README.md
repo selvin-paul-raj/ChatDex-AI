@@ -32,7 +32,7 @@ git clone https://github.com/selvin-paul-raj/ChatDex-AI.git
 
 1. Open `chrome://extensions/`
 2. Enable **Developer mode** (top right)
-3. Click **Load unpacked** → select the `ai-chat-suite/` folder inside the cloned repo
+3. Click **Load unpacked** → select the `ChatDex-AI/` folder inside the cloned repo
 
 ### 3. Connect Notion
 
@@ -83,7 +83,7 @@ Each page has database properties: **Name**, **Platform** (chatgpt/gemini), **Ta
 ## Project Structure
 
 ```
-ai-chat-suite/                    # Load this folder in Chrome
+ChatDex-AI/                       # Load this folder in Chrome
 ├── manifest.json                 # Permissions, content scripts, service worker
 ├── config.js                     # Pre-configured (no editing needed)
 ├── background.js                 # Service worker — Notion API proxy, badge
