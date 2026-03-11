@@ -29,10 +29,3 @@ const ACS_CONFIG = Object.freeze({
   // Max time to wait for OAuth completion (ms)
   OAUTH_TIMEOUT: 300000, // 5 minutes
 });
-
-  // How often to poll for OAuth token (ms)
-  OAUTH_POLL_INTERVAL: 2000,
-
-  // Max time to wait for OAuth completion (ms)
-  OAUTH_TIMEOUT: 300000, // 5 minutes
-});
