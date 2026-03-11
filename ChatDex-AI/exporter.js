@@ -212,66 +212,65 @@ function buildPdfDocument(meta, conversation) {
 <meta charset="utf-8">
 <title>${escapeHTMLForExport(meta.title)} — ChatDex AI</title>
 <style>
-  @page { size: A4; margin: 12mm 14mm; }
+  @page { size: A4; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-    font-size: 13px; color: #1a1a2e; line-height: 1.75; background: #fff;
-    padding: 24px 32px;
+    font-size: 12.5px; color: #1a1a2e; line-height: 1.65; background: #fff;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   /* ── Header ── */
-  .doc-header { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid #3b82f6; }
-  .doc-title { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0; }
-  .doc-meta { font-size: 11px; color: #64748b; }
-  .doc-meta span { margin-right: 16px; }
+  .doc-header { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; }
+  .doc-title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; }
+  .doc-meta { font-size: 10px; color: #64748b; }
+  .doc-meta span { margin-right: 14px; }
   .doc-meta b { color: #475569; }
   /* ── Turns ── */
-  .turn { margin-bottom: 18px; page-break-inside: avoid; }
-  .turn-sep { border: none; height: 1px; background: #e2e8f0; margin: 22px 0; }
+  .turn { margin-bottom: 10px; page-break-inside: avoid; }
+  .turn-sep { border: none; height: 1px; background: #e2e8f0; margin: 12px 0; }
   /* ── User ── */
-  .u-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 12px; }
-  .u-label { font-size: 10px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+  .u-box { background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 0 4px 4px 0; padding: 8px 12px; margin-bottom: 8px; }
+  .u-label { font-size: 9px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
   .u-body { color: #1e293b; }
   /* ── AI ── */
-  .a-label { font-size: 10px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-  .a-body { color: #334155; line-height: 1.8; }
+  .a-label { font-size: 9px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .a-body { color: #334155; line-height: 1.7; }
   /* ── Typography ── */
-  h1 { font-size: 19px; font-weight: 700; color: #0f172a; margin: 14px 0 6px; }
-  h2 { font-size: 16px; font-weight: 700; color: #0f172a; margin: 12px 0 5px; }
-  h3 { font-size: 14px; font-weight: 600; color: #1e293b; margin: 10px 0 4px; }
-  h4 { font-size: 13px; font-weight: 600; color: #1e293b; margin: 8px 0 3px; }
-  p { margin: 4px 0; }
+  h1 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 10px 0 4px; }
+  h2 { font-size: 15px; font-weight: 700; color: #0f172a; margin: 8px 0 3px; }
+  h3 { font-size: 13px; font-weight: 600; color: #1e293b; margin: 6px 0 2px; }
+  h4 { font-size: 12.5px; font-weight: 600; color: #1e293b; margin: 5px 0 2px; }
+  p { margin: 3px 0; }
   strong { font-weight: 700; }
   em { font-style: italic; color: #475569; }
   /* ── Code ── */
   pre {
     background: #1e293b; color: #e2e8f0;
-    padding: 14px 16px; border-radius: 6px;
-    font-family: Consolas, 'Courier New', monospace; font-size: 11.5px;
-    line-height: 1.55; margin: 10px 0;
+    padding: 10px 12px; border-radius: 4px;
+    font-family: Consolas, 'Courier New', monospace; font-size: 11px;
+    line-height: 1.5; margin: 6px 0;
     white-space: pre-wrap; word-wrap: break-word;
     page-break-inside: avoid;
   }
   code {
     font-family: Consolas, 'Courier New', monospace;
     background: #f1f5f9; color: #be185d;
-    padding: 1px 5px; border-radius: 3px; font-size: 12px;
+    padding: 1px 4px; border-radius: 3px; font-size: 11.5px;
   }
   pre code { background: none; color: inherit; padding: 0; }
   /* ── Tables ── */
-  table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 12px; page-break-inside: avoid; }
-  th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 8px 12px; border: 1px solid #cbd5e1; }
-  td { padding: 7px 12px; border: 1px solid #e2e8f0; color: #475569; }
+  table { border-collapse: collapse; margin: 6px 0; width: 100%; font-size: 11.5px; page-break-inside: avoid; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 6px 10px; border: 1px solid #cbd5e1; }
+  td { padding: 5px 10px; border: 1px solid #e2e8f0; color: #475569; }
   tr:nth-child(even) td { background: #f8fafc; }
   /* ── Lists ── */
-  ul, ol { padding-left: 22px; margin: 6px 0; }
-  li { margin: 3px 0; color: #334155; }
+  ul, ol { padding-left: 20px; margin: 4px 0; }
+  li { margin: 2px 0; color: #334155; }
   /* ── Blockquote ── */
-  blockquote { border-left: 3px solid #6366f1; padding: 8px 14px; margin: 10px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
+  blockquote { border-left: 3px solid #6366f1; padding: 6px 12px; margin: 6px 0; background: #f8fafc; border-radius: 0 4px 4px 0; color: #475569; font-style: italic; }
   a { color: #2563eb; text-decoration: none; }
   /* ── Footer ── */
-  .doc-footer { margin-top: 32px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #94a3b8; text-align: center; }
+  .doc-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 8px; color: #94a3b8; text-align: center; }
 </style>
 </head>
 <body>

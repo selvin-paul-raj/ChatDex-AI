@@ -515,7 +515,11 @@
   function showPanelStatus(msg, type = 'info') {
     const bar = document.getElementById('acs-notion-bar');
     if (!bar) return;
-    bar.innerHTML = `<div class="acs-status acs-status-${type}">${escapeHtml(msg)}</div>`;
+    if (type === 'loading') {
+      bar.innerHTML = `<div class="acs-status acs-status-loading">${escapeHtml(msg)}<span class="acs-loading-dots"></span></div>`;
+    } else {
+      bar.innerHTML = `<div class="acs-status acs-status-${type}">${escapeHtml(msg)}</div>`;
+    }
     if (type === 'success') {
       setTimeout(() => renderNotionBar(), 3000);
     }
@@ -608,6 +612,15 @@
       showPanelStatus('Nothing to export yet', 'error');
       return;
     }
+    // If prompts are selected, filter conversation to only those turns
+    if (selectedPromptIds.size > 0) {
+      data.conversation = data.conversation.filter(e => selectedPromptIds.has(e.turn));
+      data.metadata.totalTurns = selectedPromptIds.size;
+      if (!data.conversation.length) {
+        showPanelStatus('Selected prompts have no content', 'error');
+        return;
+      }
+    }
     try {
       if (format === 'md') {
         data.includeYaml = settings.addYamlFrontMatter;
@@ -615,7 +628,7 @@
       } else if (format === 'json') {
         downloadFile(exportAsJSON(data), makeFilename(data.metadata.platform, 'json'), 'application/json');
       } else if (format === 'pdf') {
-        showPanelStatus('Generating PDF…', 'info');
+        showPanelStatus('Generating PDF', 'loading');
         exportAsPDF(data).then(() => {
           showPanelStatus('Exported!', 'success');
         }).catch(err => {

@@ -325,6 +325,17 @@
 .acs-status-info { color: var(--acs-text-muted); }
 .acs-status-success { color: #3fb950; }
 .acs-status-error { color: #f85149; }
+.acs-status-loading { color: #3fb950; font-weight: 600; }
+.acs-status-loading .acs-loading-dots::after {
+  content: '';
+  animation: acsDots 1.2s steps(4, end) infinite;
+}
+@keyframes acsDots {
+  0%  { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
 
 /* ── Prompt List ── */
 .acs-list {
