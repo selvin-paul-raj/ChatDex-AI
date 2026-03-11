@@ -157,7 +157,7 @@ function escapeYaml(str) {
 
 /**
  * Exports chat data as a professional PDF — direct file download.
- * Uses html2pdf.js (jsPDF + html2canvas) to render styled HTML to PDF.
+ * Sends styled HTML to the server (pdfcrowd), receives PDF, triggers download.
  * @param {object} chatData - Chat data from gatherChatData().
  * @returns {Promise<void>}
  */
@@ -165,109 +165,39 @@ async function exportAsPDF(chatData) {
   if (!chatData || !chatData.conversation || chatData.conversation.length === 0) {
     throw new Error('Nothing to export');
   }
-  if (typeof html2pdf === 'undefined') {
-    throw new Error('PDF engine unavailable — reinstall the extension');
-  }
 
   const meta = chatData.metadata;
+  const html = buildPdfDocument(meta, chatData.conversation);
   const filename = makeFilename(meta.platform, 'pdf');
 
-  // Build an offscreen container so html2canvas can render it
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText =
-    'position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:2147483647;';
+  const resp = await new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: 'PDF_GENERATE', html, serverUrl: ACS_CONFIG.SERVER_URL },
+      resolve
+    );
+  });
 
-  // Scoped styles
-  const style = document.createElement('style');
-  style.textContent = getPdfStyles();
-  wrapper.appendChild(style);
-
-  // Content
-  const content = document.createElement('div');
-  content.className = 'cdx-pdf';
-  content.innerHTML = buildPdfBody(meta, chatData.conversation);
-  wrapper.appendChild(content);
-  document.body.appendChild(wrapper);
-
-  try {
-    await html2pdf()
-      .set({
-        margin:     [10, 10, 10, 10],
-        filename:   filename,
-        image:      { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 794
-        },
-        jsPDF:      { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:  { mode: ['avoid-all', 'css', 'legacy'] }
-      })
-      .from(content)
-      .save();
-  } finally {
-    document.body.removeChild(wrapper);
+  if (resp.error) {
+    throw new Error(resp.error);
   }
-}
 
-/**
- * Returns CSS for the PDF content.
- */
-function getPdfStyles() {
-  return `
-  .cdx-pdf { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; font-size: 13px; color: #1a1a2e; line-height: 1.75; padding: 24px 32px; }
-  .cdx-pdf .doc-header { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid #3b82f6; }
-  .cdx-pdf .doc-title { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0; }
-  .cdx-pdf .doc-meta { font-size: 11px; color: #64748b; }
-  .cdx-pdf .doc-meta span { margin-right: 16px; }
-  .cdx-pdf .doc-meta b { color: #475569; }
-  .cdx-pdf .turn { margin-bottom: 18px; page-break-inside: avoid; }
-  .cdx-pdf .turn-sep { border: none; height: 1px; background: #e2e8f0; margin: 22px 0; }
-  .cdx-pdf .u-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 12px; }
-  .cdx-pdf .u-label { font-size: 10px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
-  .cdx-pdf .u-body { color: #1e293b; }
-  .cdx-pdf .a-label { font-size: 10px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-  .cdx-pdf .a-body { color: #334155; line-height: 1.8; }
-  .cdx-pdf h1 { font-size: 19px; font-weight: 700; color: #0f172a; margin: 14px 0 6px; }
-  .cdx-pdf h2 { font-size: 16px; font-weight: 700; color: #0f172a; margin: 12px 0 5px; }
-  .cdx-pdf h3 { font-size: 14px; font-weight: 600; color: #1e293b; margin: 10px 0 4px; }
-  .cdx-pdf h4 { font-size: 13px; font-weight: 600; color: #1e293b; margin: 8px 0 3px; }
-  .cdx-pdf p { margin: 4px 0; }
-  .cdx-pdf strong { font-weight: 700; }
-  .cdx-pdf em { font-style: italic; color: #475569; }
-  .cdx-pdf pre { background: #1e293b; color: #e2e8f0; padding: 14px 16px; border-radius: 6px; font-family: Consolas, 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; margin: 10px 0; white-space: pre-wrap; word-wrap: break-word; page-break-inside: avoid; }
-  .cdx-pdf code { font-family: Consolas, 'Courier New', monospace; background: #f1f5f9; color: #be185d; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
-  .cdx-pdf pre code { background: none; color: inherit; padding: 0; }
-  .cdx-pdf table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 12px; page-break-inside: avoid; }
-  .cdx-pdf th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 8px 12px; border: 1px solid #cbd5e1; }
-  .cdx-pdf td { padding: 7px 12px; border: 1px solid #e2e8f0; color: #475569; }
-  .cdx-pdf tr:nth-child(even) td { background: #f8fafc; }
-  .cdx-pdf ul, .cdx-pdf ol { padding-left: 22px; margin: 6px 0; }
-  .cdx-pdf li { margin: 3px 0; color: #334155; }
-  .cdx-pdf blockquote { border-left: 3px solid #6366f1; padding: 8px 14px; margin: 10px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
-  .cdx-pdf a { color: #2563eb; text-decoration: none; }
-  .cdx-pdf .doc-footer { margin-top: 32px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #94a3b8; text-align: center; }
-  `;
-}
+  // Convert data URL to blob and download
+  const byteString = atob(resp.dataUrl.split(',')[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  const blob = new Blob([ab], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
 
-/**
- * Builds the inner HTML body for PDF export (not a full document).
- */
-function buildPdfBody(meta, conversation) {
-  return `
-<div class="doc-header">
-  <div class="doc-title">${escapeHTMLForExport(meta.title)}</div>
-  <div class="doc-meta">
-    <span><b>Platform:</b> ${escapeHTMLForExport(meta.platform)}</span>
-    <span><b>Exported:</b> ${meta.exportedAt}</span>
-    <span><b>Turns:</b> ${meta.totalTurns}</span>
-  </div>
-</div>
-${buildPdfConversationHTML(conversation)}
-<div class="doc-footer">Generated by ChatDex AI</div>`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 

@@ -36,6 +36,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return false;
   }
 
+  // ── PDF Generation Proxy (sends HTML to server, returns PDF blob URL) ──
+  if (msg.type === 'PDF_GENERATE') {
+    const { html, serverUrl } = msg;
+    fetch(`${serverUrl}/api/generate-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          sendResponse({ error: errBody.error || `Server error: ${res.status}` });
+          return;
+        }
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => sendResponse({ dataUrl: reader.result });
+        reader.onerror = () => sendResponse({ error: 'Failed to read PDF' });
+        reader.readAsDataURL(blob);
+      })
+      .catch((err) => {
+        sendResponse({ error: err.message });
+      });
+    return true; // keep channel open for async response
+  }
+
   // ── Notion API Proxy (avoids CORS from content scripts) ──
   if (msg.type === 'NOTION_API_PROXY') {
     const { endpoint, token, body, method } = msg;

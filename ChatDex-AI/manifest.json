@@ -14,7 +14,8 @@
     "https://gemini.google.com/*",
     "https://*.notion.com/*",
     "https://api.notion.com/*",
-    "https://*.supabase.co/*"
+    "https://*.supabase.co/*",
+    "https://server-ochre-nine-97.vercel.app/*"
   ],
   "options_page": "options.html",
   "background": {
@@ -29,7 +30,6 @@
       "js": [
         "platformDetector.js",
         "utils.js",
-        "lib/html2pdf.bundle.min.js",
         "exporter.js",
         "notionSync.js",
         "content.js"
