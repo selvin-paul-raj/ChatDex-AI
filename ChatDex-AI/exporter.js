@@ -218,60 +218,90 @@ async function exportAsPDF(chatData) {
 
 
 /**
- * Builds CSS + body HTML for PDF rendering (not a full document).
- * Returns { css, body } for proper injection into a container div.
+ * Builds a complete styled HTML document for PDF print.
  */
-function buildPdfContent(meta, conversation) {
-  const css = `
-  .pdf-root { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; color: #1a1a2e; line-height: 1.7; padding: 32px 36px; background: #fff; }
-  .pdf-root * { box-sizing: border-box; }
-  .pdf-root .doc-header { margin-bottom: 28px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
-  .pdf-root .doc-title { font-size: 26px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; margin: 0 0 8px 0; }
-  .pdf-root .doc-meta { display: flex; gap: 18px; font-size: 11px; color: #64748b; flex-wrap: wrap; }
-  .pdf-root .doc-meta-item { display: inline-flex; align-items: center; gap: 4px; }
-  .pdf-root .doc-meta-label { font-weight: 600; color: #475569; }
-  .pdf-root .turn-block { margin-bottom: 20px; }
-  .pdf-root .turn-separator { border: none; height: 1px; background: #cbd5e1; margin: 24px 0; }
-  .pdf-root .user-block { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
-  .pdf-root .user-header { margin-bottom: 6px; font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pdf-root .user-content { color: #1e293b; font-size: 13px; line-height: 1.7; }
-  .pdf-root .ai-header { margin-bottom: 8px; font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pdf-root .ai-content { color: #334155; font-size: 13px; line-height: 1.8; padding: 0 2px; }
-  .pdf-root .ai-content h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 14px 0 6px 0; }
-  .pdf-root .ai-content h2 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 12px 0 6px 0; }
-  .pdf-root .ai-content h3 { font-size: 15px; font-weight: 600; color: #0f172a; margin: 10px 0 5px 0; }
-  .pdf-root .ai-content h4 { font-size: 13px; font-weight: 600; color: #0f172a; margin: 8px 0 4px 0; }
-  .pdf-root .ai-content p { margin: 5px 0; }
-  .pdf-root .ai-content strong { font-weight: 700; color: #1e293b; }
-  .pdf-root .ai-content em { font-style: italic; color: #475569; }
-  .pdf-root pre { background: #1e293b; color: #e2e8f0; padding: 14px 16px; border-radius: 6px; font-family: Consolas, 'Courier New', monospace; font-size: 12px; line-height: 1.5; margin: 10px 0; white-space: pre-wrap; word-wrap: break-word; overflow-x: hidden; }
-  .pdf-root code { font-family: Consolas, 'Courier New', monospace; background: #f1f5f9; color: #be185d; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
-  .pdf-root pre code { background: none; color: inherit; padding: 0; border-radius: 0; }
-  .pdf-root table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 12px; }
-  .pdf-root th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 8px 12px; border: 1px solid #cbd5e1; }
-  .pdf-root td { padding: 7px 12px; border: 1px solid #e2e8f0; color: #475569; }
-  .pdf-root tr:nth-child(even) td { background: #f8fafc; }
-  .pdf-root ul, .pdf-root ol { padding-left: 22px; margin: 6px 0; }
-  .pdf-root li { margin: 3px 0; color: #334155; }
-  .pdf-root blockquote { border-left: 3px solid #6366f1; padding: 8px 14px; margin: 10px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
-  .pdf-root a { color: #2563eb; text-decoration: none; }
-  .pdf-root .doc-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
-  `;
-
-  const body = `
+function buildPdfDocument(meta, conversation) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${escapeHTMLForExport(meta.title)} — ChatDex AI</title>
+<style>
+  @page { size: A4; margin: 12mm 14mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13px; color: #1a1a2e; line-height: 1.75; background: #fff;
+    padding: 24px 32px;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* ── Header ── */
+  .doc-header { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid #3b82f6; }
+  .doc-title { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 6px 0; }
+  .doc-meta { font-size: 11px; color: #64748b; }
+  .doc-meta span { margin-right: 16px; }
+  .doc-meta b { color: #475569; }
+  /* ── Turns ── */
+  .turn { margin-bottom: 18px; page-break-inside: avoid; }
+  .turn-sep { border: none; height: 1px; background: #e2e8f0; margin: 22px 0; }
+  /* ── User ── */
+  .u-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 6px 6px 0; padding: 12px 16px; margin-bottom: 12px; }
+  .u-label { font-size: 10px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+  .u-body { color: #1e293b; }
+  /* ── AI ── */
+  .a-label { font-size: 10px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+  .a-body { color: #334155; line-height: 1.8; }
+  /* ── Typography ── */
+  h1 { font-size: 19px; font-weight: 700; color: #0f172a; margin: 14px 0 6px; }
+  h2 { font-size: 16px; font-weight: 700; color: #0f172a; margin: 12px 0 5px; }
+  h3 { font-size: 14px; font-weight: 600; color: #1e293b; margin: 10px 0 4px; }
+  h4 { font-size: 13px; font-weight: 600; color: #1e293b; margin: 8px 0 3px; }
+  p { margin: 4px 0; }
+  strong { font-weight: 700; }
+  em { font-style: italic; color: #475569; }
+  /* ── Code ── */
+  pre {
+    background: #1e293b; color: #e2e8f0;
+    padding: 14px 16px; border-radius: 6px;
+    font-family: Consolas, 'Courier New', monospace; font-size: 11.5px;
+    line-height: 1.55; margin: 10px 0;
+    white-space: pre-wrap; word-wrap: break-word;
+    page-break-inside: avoid;
+  }
+  code {
+    font-family: Consolas, 'Courier New', monospace;
+    background: #f1f5f9; color: #be185d;
+    padding: 1px 5px; border-radius: 3px; font-size: 12px;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  /* ── Tables ── */
+  table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 12px; page-break-inside: avoid; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 8px 12px; border: 1px solid #cbd5e1; }
+  td { padding: 7px 12px; border: 1px solid #e2e8f0; color: #475569; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  /* ── Lists ── */
+  ul, ol { padding-left: 22px; margin: 6px 0; }
+  li { margin: 3px 0; color: #334155; }
+  /* ── Blockquote ── */
+  blockquote { border-left: 3px solid #6366f1; padding: 8px 14px; margin: 10px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
+  a { color: #2563eb; text-decoration: none; }
+  /* ── Footer ── */
+  .doc-footer { margin-top: 32px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
 <div class="doc-header">
   <div class="doc-title">${escapeHTMLForExport(meta.title)}</div>
   <div class="doc-meta">
-    <span class="doc-meta-item"><span class="doc-meta-label">Platform:</span> ${escapeHTMLForExport(meta.platform)}</span>
-    <span class="doc-meta-item"><span class="doc-meta-label">Exported:</span> ${meta.exportedAt}</span>
-    <span class="doc-meta-item"><span class="doc-meta-label">Turns:</span> ${meta.totalTurns}</span>
+    <span><b>Platform:</b> ${escapeHTMLForExport(meta.platform)}</span>
+    <span><b>Exported:</b> ${meta.exportedAt}</span>
+    <span><b>Turns:</b> ${meta.totalTurns}</span>
   </div>
 </div>
 ${buildPdfConversationHTML(conversation)}
-<div class="doc-footer">Generated by ChatDex AI</div>`;
-
-  return { css, body };
-}
+<div class="doc-footer">Generated by ChatDex AI</div>
+</body>
+</html>`;
 }
 
 /**
@@ -283,18 +313,18 @@ function buildPdfConversationHTML(conversation) {
 
   for (const entry of conversation) {
     if (entry.turn !== currentTurn) {
-      if (currentTurn > 0) parts.push('<hr class="turn-separator">');
+      if (currentTurn > 0) parts.push('</div><hr class="turn-sep">');
       currentTurn = entry.turn;
-      parts.push('<div class="turn-block">');
+      parts.push('<div class="turn">');
     }
     if (entry.role === 'user') {
-      parts.push(`<div class="user-block">`);
-      parts.push(`<div class="user-header">&#128172; You</div>`);
-      parts.push(`<div class="user-content">${markdownToHTML(entry.content)}</div>`);
+      parts.push(`<div class="u-box">`);
+      parts.push(`<div class="u-label">&#128172; You</div>`);
+      parts.push(`<div class="u-body">${markdownToHTML(entry.content)}</div>`);
       parts.push(`</div>`);
     } else {
-      parts.push(`<div class="ai-header">&#129302; AI Response</div>`);
-      parts.push(`<div class="ai-content">${markdownToHTML(entry.content)}</div>`);
+      parts.push(`<div class="a-label">&#129302; AI Response</div>`);
+      parts.push(`<div class="a-body">${markdownToHTML(entry.content)}</div>`);
     }
   }
   if (currentTurn > 0) parts.push('</div>');
