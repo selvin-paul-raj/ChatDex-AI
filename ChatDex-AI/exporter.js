@@ -170,26 +170,45 @@ async function exportAsPDF(chatData) {
   }
 
   const meta = chatData.metadata;
-  const html = buildPdfHTML(meta, chatData.conversation);
+  const { css, body } = buildPdfContent(meta, chatData.conversation);
   const filename = makeFilename(meta.platform, 'pdf');
 
-  // Create a hidden container to render the HTML
+  // Build container with scoped styles (not a full HTML doc)
   const container = document.createElement('div');
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;z-index:-1;background:#fff;';
-  container.innerHTML = html;
+  container.id = 'chatdex-pdf-render';
+  container.style.cssText = 'position:fixed;left:0;top:0;width:794px;background:#fff;z-index:2147483647;overflow:auto;';
+
+  const styleEl = document.createElement('style');
+  styleEl.textContent = '#chatdex-pdf-render{' + css.replace(/\n/g, '') + '}';
+  container.appendChild(styleEl);
+
+  const content = document.createElement('div');
+  content.className = 'pdf-root';
+  content.innerHTML = body;
+  container.appendChild(content);
   document.body.appendChild(container);
+
+  // Wait for fonts and images to load
+  await new Promise(r => setTimeout(r, 300));
 
   try {
     await html2pdf()
       .set({
-        margin: [0.4, 0.4, 0.4, 0.4],
+        margin: [10, 10, 10, 10],
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       })
-      .from(container)
+      .from(content)
       .save();
   } finally {
     document.body.removeChild(container);
@@ -199,65 +218,47 @@ async function exportAsPDF(chatData) {
 
 
 /**
- * Builds a professional HTML document for PDF rendering.
+ * Builds CSS + body HTML for PDF rendering (not a full document).
+ * Returns { css, body } for proper injection into a container div.
  */
-function buildPdfHTML(meta, conversation) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>${escapeHTMLForExport(meta.title)}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; color: #1a1a2e; line-height: 1.7; padding: 48px 56px; background: #fff; }
-  /* Header */
-  .doc-header { margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
-  .doc-title { font-size: 22pt; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 8px; }
-  .doc-meta { display: flex; gap: 20px; font-size: 8.5pt; color: #64748b; }
-  .doc-meta-item { display: flex; align-items: center; gap: 5px; }
-  .doc-meta-label { font-weight: 600; color: #475569; }
-  /* Conversation */
-  .turn-block { margin-bottom: 24px; page-break-inside: avoid; }
-  .turn-separator { border: none; height: 1px; background: linear-gradient(to right, transparent, #cbd5e1, transparent); margin: 28px 0; }
-  /* User prompt */
-  .user-block { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; }
-  .user-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 9pt; font-weight: 600; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; }
-  .user-content { color: #1e293b; font-size: 10.5pt; line-height: 1.7; }
-  /* AI response */
-  .ai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 9pt; font-weight: 600; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; }
-  .ai-content { color: #334155; font-size: 10.5pt; line-height: 1.8; padding: 0 4px; }
-  /* Typography */
-  .ai-content h1, .ai-content h2, .ai-content h3, .ai-content h4 { color: #0f172a; margin: 16px 0 8px 0; }
-  .ai-content h1 { font-size: 15pt; }
-  .ai-content h2 { font-size: 13pt; }
-  .ai-content h3 { font-size: 11.5pt; }
-  .ai-content h4 { font-size: 10.5pt; }
-  .ai-content p { margin: 6px 0; }
-  .ai-content strong { font-weight: 600; color: #1e293b; }
-  .ai-content em { font-style: italic; color: #475569; }
-  /* Code */
-  pre { background: #1e293b; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; font-family: 'Fira Code', 'SF Mono', Consolas, monospace; font-size: 9pt; line-height: 1.6; overflow-x: auto; margin: 12px 0; white-space: pre-wrap; word-wrap: break-word; }
-  code { font-family: 'Fira Code', 'SF Mono', Consolas, monospace; background: #f1f5f9; color: #be185d; padding: 2px 6px; border-radius: 4px; font-size: 9pt; }
-  pre code { background: none; color: inherit; padding: 0; border-radius: 0; font-size: inherit; }
-  /* Tables */
-  table { border-collapse: collapse; margin: 12px 0; width: 100%; font-size: 9.5pt; }
-  th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 10px 14px; border: 1px solid #cbd5e1; }
-  td { padding: 8px 14px; border: 1px solid #e2e8f0; color: #475569; }
-  tr:nth-child(even) td { background: #f8fafc; }
-  /* Lists */
-  ul, ol { padding-left: 24px; margin: 8px 0; }
-  li { margin: 4px 0; color: #334155; }
-  li::marker { color: #6366f1; }
-  /* Blockquotes */
-  blockquote { border-left: 3px solid #6366f1; padding: 10px 16px; margin: 12px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
-  /* Links */
-  a { color: #2563eb; text-decoration: none; }
-  /* Footer */
-  .doc-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 8pt; color: #94a3b8; text-align: center; }
-</style>
-</head>
-<body>
+function buildPdfContent(meta, conversation) {
+  const css = `
+  .pdf-root { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; color: #1a1a2e; line-height: 1.7; padding: 32px 36px; background: #fff; }
+  .pdf-root * { box-sizing: border-box; }
+  .pdf-root .doc-header { margin-bottom: 28px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+  .pdf-root .doc-title { font-size: 26px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; margin: 0 0 8px 0; }
+  .pdf-root .doc-meta { display: flex; gap: 18px; font-size: 11px; color: #64748b; flex-wrap: wrap; }
+  .pdf-root .doc-meta-item { display: inline-flex; align-items: center; gap: 4px; }
+  .pdf-root .doc-meta-label { font-weight: 600; color: #475569; }
+  .pdf-root .turn-block { margin-bottom: 20px; }
+  .pdf-root .turn-separator { border: none; height: 1px; background: #cbd5e1; margin: 24px 0; }
+  .pdf-root .user-block { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
+  .pdf-root .user-header { margin-bottom: 6px; font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pdf-root .user-content { color: #1e293b; font-size: 13px; line-height: 1.7; }
+  .pdf-root .ai-header { margin-bottom: 8px; font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pdf-root .ai-content { color: #334155; font-size: 13px; line-height: 1.8; padding: 0 2px; }
+  .pdf-root .ai-content h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 14px 0 6px 0; }
+  .pdf-root .ai-content h2 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 12px 0 6px 0; }
+  .pdf-root .ai-content h3 { font-size: 15px; font-weight: 600; color: #0f172a; margin: 10px 0 5px 0; }
+  .pdf-root .ai-content h4 { font-size: 13px; font-weight: 600; color: #0f172a; margin: 8px 0 4px 0; }
+  .pdf-root .ai-content p { margin: 5px 0; }
+  .pdf-root .ai-content strong { font-weight: 700; color: #1e293b; }
+  .pdf-root .ai-content em { font-style: italic; color: #475569; }
+  .pdf-root pre { background: #1e293b; color: #e2e8f0; padding: 14px 16px; border-radius: 6px; font-family: Consolas, 'Courier New', monospace; font-size: 12px; line-height: 1.5; margin: 10px 0; white-space: pre-wrap; word-wrap: break-word; overflow-x: hidden; }
+  .pdf-root code { font-family: Consolas, 'Courier New', monospace; background: #f1f5f9; color: #be185d; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .pdf-root pre code { background: none; color: inherit; padding: 0; border-radius: 0; }
+  .pdf-root table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 12px; }
+  .pdf-root th { background: #f1f5f9; font-weight: 600; color: #334155; text-align: left; padding: 8px 12px; border: 1px solid #cbd5e1; }
+  .pdf-root td { padding: 7px 12px; border: 1px solid #e2e8f0; color: #475569; }
+  .pdf-root tr:nth-child(even) td { background: #f8fafc; }
+  .pdf-root ul, .pdf-root ol { padding-left: 22px; margin: 6px 0; }
+  .pdf-root li { margin: 3px 0; color: #334155; }
+  .pdf-root blockquote { border-left: 3px solid #6366f1; padding: 8px 14px; margin: 10px 0; background: #f8fafc; border-radius: 0 6px 6px 0; color: #475569; font-style: italic; }
+  .pdf-root a { color: #2563eb; text-decoration: none; }
+  .pdf-root .doc-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+  `;
+
+  const body = `
 <div class="doc-header">
   <div class="doc-title">${escapeHTMLForExport(meta.title)}</div>
   <div class="doc-meta">
@@ -267,9 +268,10 @@ function buildPdfHTML(meta, conversation) {
   </div>
 </div>
 ${buildPdfConversationHTML(conversation)}
-<div class="doc-footer">Generated by ChatDex AI</div>
-</body>
-</html>`;
+<div class="doc-footer">Generated by ChatDex AI</div>`;
+
+  return { css, body };
+}
 }
 
 /**
