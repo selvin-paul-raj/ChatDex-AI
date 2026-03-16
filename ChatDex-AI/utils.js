@@ -76,6 +76,12 @@ function extractText(node) {
         const tag = child.tagName.toLowerCase();
         if (SKIP_TAGS.has(tag)) continue;
         if (isToolbar(child)) continue;
+        
+        // Skip visually hidden elements used for screen readers (e.g. "You said:")
+        if (child.className && typeof child.className === 'string') {
+          const cName = child.className.toLowerCase();
+          if (cName.includes('visually-hidden') || cName.includes('sr-only')) continue;
+        }
 
         if (tag === 'pre') {
           const codeEl = child.querySelector('code');
@@ -143,7 +149,16 @@ function extractText(node) {
   }
 
   walk(node);
-  return parts.join('').replace(/\n{3,}/g, '\n\n').trim();
+  let result = parts.join('').replace(/\n{3,}/g, '\n\n').trim();
+
+  // Strip common accessibility/screen-reader prefixes injected by platforms
+  // e.g. "You said:\n", "## Gemini said:", etc.
+  result = result.replace(/^(?:#+\s*)?You said\s*[:\n]*\s*/i, '');
+  result = result.replace(/^(?:#+\s*)?(?:Gemini|ChatGPT|Assistant)\s*said\s*[:\n]*\s*/i, '');
+
+  // If there's an orphaned leading quote from Gemini's formatting without a matching ending quote at the end of the text, we let it be, but typically we just clean the prefix.
+  
+  return result;
 }
 
 /**
