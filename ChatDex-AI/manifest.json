@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChatDex AI",
   "version": "1.0.0",
-  "description": "Capture, search, and sync AI chats — ChatGPT & Gemini.",
+  "description": "Capture, search, and sync AI chats — ChatGPT, Gemini & Claude.",
   "permissions": [
     "storage",
     "downloads",
@@ -12,6 +12,7 @@
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
+    "https://claude.ai/*",
     "https://*.notion.com/*",
     "https://api.notion.com/*",
     "https://*.supabase.co/*",
@@ -25,7 +26,8 @@
     {
       "matches": [
         "https://chatgpt.com/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://claude.ai/*"
       ],
       "js": [
         "config.js",
@@ -34,9 +36,6 @@
         "exporter.js",
         "notionSync.js",
         "content.js"
-      ],
-      "css": [
-        "panel.css"
       ],
       "run_at": "document_idle"
     }
@@ -53,5 +52,11 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["panel.css"],
+      "matches": ["https://chatgpt.com/*", "https://gemini.google.com/*", "https://claude.ai/*"]
+    }
+  ]
 }

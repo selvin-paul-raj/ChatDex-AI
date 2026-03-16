@@ -40,12 +40,32 @@ const PLATFORM_SELECTORS = {
       darkText: '#e3e3e3',
       darkMuted: '#8e918f'
     }
+  },
+  claude: {
+    userMessage: '[data-testid="user-message"]',
+    aiMessage: '.font-claude-response',
+    chatTitle: 'title',
+    chatContainer: 'main',
+    stickyHeaderHeight: 64,
+    theme: {
+      accent: '#d97706',
+      accentHover: '#b45309',
+      headerBg: '#d97706',
+      headerText: '#fff',
+      darkBg: '#1a1a1a',
+      darkBorder: '#333',
+      darkItem: '#262626',
+      darkItemHover: '#333',
+      darkText: '#e5e5e5',
+      darkMuted: '#8b8b8b'
+    }
   }
 };
 
 const PLATFORM_URL_MAP = [
   { pattern: /chatgpt\.com/, name: 'chatgpt' },
-  { pattern: /gemini\.google\.com/, name: 'gemini' }
+  { pattern: /gemini\.google\.com/, name: 'gemini' },
+  { pattern: /claude\.ai/, name: 'claude' }
 ];
 
 /**

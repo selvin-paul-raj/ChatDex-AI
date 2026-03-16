@@ -23,6 +23,13 @@
     addYamlFrontMatter: false
   };
 
+  /** Get an element by ID inside the Shadow DOM. */
+  function panelEl(id) {
+    const host = document.getElementById('acs-shadow-host');
+    const root = host?.shadowRoot;
+    return root?.querySelector('#' + id) ?? null;
+  }
+
   async function init() {
     try {
       platform = detectPlatform();
@@ -90,8 +97,8 @@
     if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       e.stopPropagation();
-      const panel = document.getElementById('acs-panel');
-      const toggle = document.getElementById('acs-toggle');
+      const panel = panelEl('acs-panel');
+      const toggle = panelEl('acs-toggle');
       if (!panel) return;
       const collapsed = panel.classList.toggle('acs-collapsed');
       if (toggle) toggle.innerHTML = collapsed ? '<span class="acs-toggle-arrow">▶</span>' : '<span class="acs-toggle-arrow">◀</span>';
@@ -200,7 +207,7 @@
   }
 
   function updateBadge() {
-    if (!document.getElementById('acs-panel-root')) {
+    if (!panelEl('acs-panel-root')) {
       const oldHost = document.getElementById('acs-shadow-host');
       if (oldHost) oldHost.remove();
       injectPanel();
@@ -212,21 +219,29 @@
   // ── Panel Injection ──
 
   function injectPanel() {
-    if (document.getElementById('acs-panel-root')) return;
+    if (document.getElementById('acs-shadow-host')) return;
     if (!document.body || !document.documentElement) {
       setTimeout(injectPanel, 500);
       return;
     }
 
+    const container = document.createElement('div');
+    container.id = 'acs-shadow-host';
+    document.documentElement.appendChild(container);
+
+    const shadow = container.attachShadow({ mode: 'open' });
+
+    // Load panel CSS inside shadow DOM for full isolation
+    const cssUrl = chrome.runtime.getURL('panel.css');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = cssUrl;
+    shadow.appendChild(link);
+
     const panel = document.createElement('div');
     panel.id = 'acs-panel-root';
     panel.innerHTML = getPanelHTML();
-
-    const container = document.createElement('div');
-    container.id = 'acs-shadow-host';
-    container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;pointer-events:none;';
-    document.documentElement.appendChild(container);
-    container.appendChild(panel);
+    shadow.appendChild(panel);
 
     // Apply theme
     if (platform?.selectors?.theme) {
@@ -244,6 +259,11 @@
           rootEl.style.setProperty('--acs-item-bg', t.darkItem);
           rootEl.style.setProperty('--acs-item-hover', t.darkItemHover);
         }
+        // Claude.ai has a taller header and different layout — adjust position
+        if (platform.name === 'claude') {
+          rootEl.style.top = '48px';
+          rootEl.style.right = '16px';
+        }
       }
     }
 
@@ -258,7 +278,7 @@
   function getPanelHTML() {
     const darkClass = isDarkMode() ? 'acs-dark' : '';
     const pName = platform?.name || '';
-    const platformLabels = { chatgpt: 'ChatGPT', gemini: 'Gemini' };
+    const platformLabels = { chatgpt: 'ChatGPT', gemini: 'Gemini', claude: 'Claude' };
     const label = platformLabels[pName] || 'ChatDex AI';
 
     return `
@@ -347,6 +367,15 @@
       });
     });
 
+    // Close export menu when clicking outside — listen on shadow root and document
+    const shadowRoot = root.getRootNode();
+    if (shadowRoot && shadowRoot !== document) {
+      shadowRoot.addEventListener('click', (e) => {
+        if (!e.target.closest('#acs-export-dropdown')) {
+          exportMenu?.classList.remove('acs-export-menu-open');
+        }
+      });
+    }
     document.addEventListener('click', () => {
       exportMenu?.classList.remove('acs-export-menu-open');
     });
@@ -386,27 +415,28 @@
       e.preventDefault();
     });
 
-    document.addEventListener('mousemove', (e) => {
+    // Use window-level listeners so drag works even when cursor leaves shadow DOM
+    window.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
       panel.style.right = Math.max(0, startRight - (e.clientX - startX)) + 'px';
       panel.style.top = Math.max(0, startTop + (e.clientY - startY)) + 'px';
     });
 
-    document.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mouseup', () => { isDragging = false; });
   }
 
   // ── Render ──
 
   function renderPanel(filter = '') {
-    let list = document.getElementById('acs-prompt-list');
-    let badge = document.getElementById('acs-prompt-count');
+    let list = panelEl('acs-prompt-list');
+    let badge = panelEl('acs-prompt-count');
 
     if (!list || !badge) {
       const oldHost = document.getElementById('acs-shadow-host');
       if (oldHost) oldHost.remove();
       injectPanel();
-      list = document.getElementById('acs-prompt-list');
-      badge = document.getElementById('acs-prompt-count');
+      list = panelEl('acs-prompt-list');
+      badge = panelEl('acs-prompt-count');
       if (!list) return;
     }
 
@@ -470,7 +500,7 @@
   }
 
   function renderNotionBar() {
-    const bar = document.getElementById('acs-notion-bar');
+    const bar = panelEl('acs-notion-bar');
     if (!bar) return;
 
     if (notionConnected) {
@@ -495,7 +525,7 @@
   }
 
   function updateSyncButton() {
-    const btn = document.getElementById('acs-sync-selected');
+    const btn = panelEl('acs-sync-selected');
     if (!btn) return;
     const count = selectedPromptIds.size;
     btn.disabled = count === 0;
@@ -503,7 +533,7 @@
   }
 
   function updateSelectAll() {
-    const btn = document.getElementById('acs-select-all-btn');
+    const btn = panelEl('acs-select-all-btn');
     if (!btn) return;
     if (selectedPromptIds.size === promptIndex.length && promptIndex.length > 0) {
       btn.textContent = 'Deselect';
@@ -513,7 +543,7 @@
   }
 
   function showPanelStatus(msg, type = 'info') {
-    const bar = document.getElementById('acs-notion-bar');
+    const bar = panelEl('acs-notion-bar');
     if (!bar) return;
     if (type === 'loading') {
       bar.innerHTML = `<div class="acs-status acs-status-loading">${escapeHtml(msg)}<span class="acs-loading-dots"></span></div>`;
@@ -548,7 +578,7 @@
 
   async function syncSelectedToNotion() {
     if (selectedPromptIds.size === 0) return;
-    const syncBtn = document.getElementById('acs-sync-selected');
+    const syncBtn = panelEl('acs-sync-selected');
     if (syncBtn) { syncBtn.disabled = true; syncBtn.textContent = 'Syncing...'; }
 
     const selectedPrompts = promptIndex.filter(p => selectedPromptIds.has(p.id));
